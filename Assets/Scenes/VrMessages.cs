@@ -2,79 +2,51 @@ using UnityEngine;
 using UnityEngine.XR;
 using System.Collections.Generic;
 using Byn.Unity.Examples;
+using System;
+
 public class VrMessages : MonoBehaviour
 {
     private InputDevice leftController;
     private InputDevice rightController;
-    public string deviceMessage = "";
-    private ChatApp _chatAppobj;
 
+    private ChatApp _chatAppobj;
+    public string deviceMessage = "";
+    public string[] servoInfo = new string[14];
+    public ServoJoint[] _servoJoints;
     private void Awake()
     {
         _chatAppobj = FindObjectOfType<ChatApp>();
     }
     void Start()
     {
-        List<InputDevice> devices = new List<InputDevice>();
-
-        // Get Left Controller
-        InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Left | InputDeviceCharacteristics.Controller, devices);
-        if (devices.Count > 0) leftController = devices[0];
-
-        // Get Right Controller
-        InputDevices.GetDevicesWithCharacteristics(InputDeviceCharacteristics.Right | InputDeviceCharacteristics.Controller, devices);
-        if (devices.Count > 0) rightController = devices[0];
+        InitMessage();
     }
 
-    // Update is called once per frame
-    void Update()
+  
+    private void InitMessage()
     {
+        Array.Sort(_servoJoints, (a, b) => a.MotorId.CompareTo(b.MotorId));
 
-        if (leftController.isValid)
+        for (int i = 0; i < _servoJoints.Length; i++)
         {
-            bool primaryButtonValue;
-            if (leftController.TryGetFeatureValue(CommonUsages.primaryButton, out primaryButtonValue) && primaryButtonValue)
+            servoInfo[i] = _servoJoints[i].MotorId.ToString();
+        }
+    }
+    public void createMessage(string id, string signalValue) //update the sorvo motor info after singal is received
+    {
+        for (int i = 0; i < servoInfo.Length; i++)
+        {
+            if (id == servoInfo[i])
             {
-                Debug.Log("Left Primary Button Pressed");
-                deviceMessage = "Left Primary Button Pressed";
-                SendMsg();
-            }
-
-            bool triggerPressed;
-            if (leftController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerPressed) && triggerPressed)
-            {
-                Debug.Log("Left Trigger Button Pressed");
-                deviceMessage = "Left Trigger Button Pressed";
-                SendMsg();
+                servoInfo[i] = _servoJoints[i].MotorId.ToString() + " " + _servoJoints[i].CurrentSignal.ToString();
             }
         }
-
-        if (rightController.isValid)
-        {
-            bool primaryButtonValue;
-            if (rightController.TryGetFeatureValue(CommonUsages.primaryButton, out primaryButtonValue) && primaryButtonValue)
-            {
-                Debug.Log("Right Primary Button Pressed");
-                deviceMessage = "Right Primary Button Pressed";
-                SendMsg();
-            }
-
-            bool triggerPressed;
-            if (rightController.TryGetFeatureValue(CommonUsages.triggerButton, out triggerPressed) && triggerPressed)
-            {
-                Debug.Log("Right Trigger Button Pressed");
-                deviceMessage = "Right Trigger Button Pressed";
-                SendMsg();
-            }
-        }
-       
     }
 
-    void SendMsg()
+    public void SendMsgToRobot() // Call this function to send message
     {
-        if (_chatAppobj.isServerReady)
-        {
-            _chatAppobj.SendButtonPressed(deviceMessage);
-        }
+        deviceMessage = string.Join(",", servoInfo); // join all the info
+        Debug.Log(deviceMessage);
+        _chatAppobj.SendButtonPressed(deviceMessage); //send message
     }
 }

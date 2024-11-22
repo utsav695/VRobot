@@ -21,7 +21,24 @@ public class ServoJoint : MonoBehaviour
     private float lastPwm = -1f;
     private float angle;
     private int lastSignal = -69420;
+    private int currentSignal = -69420;
+    public int CurrentSignal
+    {
+        get { return currentSignal; }
+        set { currentSignal = value; }
+    }
 
+    public int MotorId
+    {
+        get { return motorID; }
+        set { motorID = value; }
+    }
+
+    VrMessages _vrmessage;
+    private void Awake()
+    {
+        _vrmessage = FindObjectOfType<VrMessages>();
+    }
     private void Start()
     {
         _ = StartCoroutine(CalculateSignal());
@@ -67,12 +84,13 @@ public class ServoJoint : MonoBehaviour
 
                 if (lastPwm < 0f || Mathf.Abs(pwm01 - lastPwm) <= 0.25f)
                 {
-                    int currentSignal = Mathf.Clamp(Mathf.RoundToInt(minPWM + ((maxPWM - minPWM) * pwm01)) + (servoOffset ? servoOffset.Offset : 0), minPWM, maxPWM);
+                    currentSignal = Mathf.Clamp(Mathf.RoundToInt(minPWM + ((maxPWM - minPWM) * pwm01)) + (servoOffset ? servoOffset.Offset : 0), minPWM, maxPWM);
                     if (Mathf.Abs(currentSignal - lastSignal) >= 15f)
                     {
                         if (SerialHandler.SendSerialData(motorID + "," + currentSignal))
                         {
                             lastSignal = currentSignal;
+                            _vrmessage.createMessage(motorID.ToString(), currentSignal.ToString());
                         }
                     }
                 }
